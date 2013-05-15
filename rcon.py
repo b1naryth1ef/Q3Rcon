@@ -20,12 +20,13 @@ split = lambda s, l: [s[i:i+l] for i in range(0, len(s), l)]
 
 
 class RCON():
-    def __init__(self, server='localhost', password='password', port=27960):
+    def __init__(self, server='localhost', password='password', port=27960, retries=3):
         """
         The main RCON class for interacting with servers.
         server (str): The server, default is localhost
         password (str): The rconpassword, default is password
         port (int): The server port, default is 27960
+        retries (int): Number of times to retry rcon request, default is 3
         """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         if ':' in server: self.server, self.port = server.split(":")
@@ -33,7 +34,7 @@ class RCON():
         self.port = int(self.port)
         self.password = password
         self.last_cmd = None
-        self.retries = 3  # default number of retries
+        self.retries = retries  # default number of retries
         self.throttle_time = 0.0  # secs to wait between retries
         self.lock = thread.allocate_lock()
 
@@ -45,8 +46,10 @@ class RCON():
 
     def recv(self):
         data = None
-        try: data = self.socket.recv(4096)
+        try: 
+            data = self.socket.recv(4096)
         except socket.timeout: pass
+        except socket.error: pass
         return data
 
     def cmd(self, cmd):
